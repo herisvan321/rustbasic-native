@@ -1,0 +1,25 @@
+[package]
+name = "rustbasic-native"
+version = "0.0.2"
+edition = "2024"
+description = "Native platform wrapper support package for the RustBasic Framework. Run your RustBasic server inside Android, iOS, and Desktop apps."
+license = "MIT"
+
+repository = "https://github.com/herisvan321/rustbasic-native"
+documentation = "https://github.com/herisvan321/rustbasic-native"
+homepage = "https://github.com/herisvan321/rustbasic-native"
+
+[lib]
+name = "rustbasic_native"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rustbasic-native"
+path = "src/bin/native.rs"
+
+[dependencies]
+rustbasic-core = {  version = "0.1", features = ["websocket"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+rustbasic-core = { version = "0.1", features = ["android", "websocket"] }
+libc = "0.2"
