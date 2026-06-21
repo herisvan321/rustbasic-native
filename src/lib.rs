@@ -1,4 +1,5 @@
 // Re-export rustbasic_core modules for use in the setup_native! macro
+pub mod scaffolding;
 pub use rustbasic_core::tokio;
 pub use rustbasic_core::Config;
 pub use rustbasic_core::database;
