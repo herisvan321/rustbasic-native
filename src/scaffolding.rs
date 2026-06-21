@@ -927,8 +927,8 @@ fn main() {
             let session_store = rustbasic_core::session::setup_session(&cfg_clone).await;
             let app_router = rustbasic::routes::build_router();
 
-            rustbasic_core::view::set_embedded_templates(rustbasic::config::app::EmbeddedTemplates::get);
-            rustbasic_core::server::set_embedded_public(rustbasic::config::app::EmbeddedPublic::get);
+            rustbasic_core::view::set_embedded_templates(rustbasic::EmbeddedTemplates::get);
+            rustbasic_core::server::set_embedded_public(rustbasic::EmbeddedPublic::get);
 
             println!("🚀 Desktop Backend Server running on port {}", cfg_clone.app_port);
             rustbasic_core::server::start_server(cfg_clone, session_store, db, app_router).await;
