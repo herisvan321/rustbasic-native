@@ -61,8 +61,8 @@ macro_rules! setup_native {
                     let app_router = crate::routes::build_router();
                     
                     // Inject embedded files
-                    $crate::view::set_embedded_templates(crate::config::app::EmbeddedTemplates::get);
-                    $crate::server::set_embedded_public(crate::config::app::EmbeddedPublic::get);
+                    $crate::view::set_embedded_templates(crate::EmbeddedTemplates::get);
+                    $crate::server::set_embedded_public(crate::EmbeddedPublic::get);
                     
                     // Start Server
                     $crate::server::start_server(cfg, session_store, db, app_router).await;

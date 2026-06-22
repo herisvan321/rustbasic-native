@@ -1159,7 +1159,9 @@ dependencies = [
 
 [[package]]
 name = "rustbasic-core"
-version = "0.1.27"
+version = "0.0.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c76810639008b1a0ed9ad8f0b35f9223d4c9fb22ad2825657b2812124f9ec0b"
 dependencies = [
  "futures-util",
  "http",
@@ -1180,7 +1182,9 @@ dependencies = [
 
 [[package]]
 name = "rustbasic-core-macro"
-version = "0.1.1"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "351e13b687e938605d7d4d78cdc7fde125b1c9fe9f427eb5a7405847959055d7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1189,7 +1193,7 @@ dependencies = [
 
 [[package]]
 name = "rustbasic-native"
-version = "0.0.5"
+version = "0.0.9"
 dependencies = [
  "libc",
  "rustbasic-core",

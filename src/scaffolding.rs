@@ -128,13 +128,18 @@ pub fn remove_native_scaffolding() {
     let cargo_path = Path::new("Cargo.toml");
     if cargo_path.exists() {
         if let Ok(mut content) = fs::read_to_string(cargo_path) {
-            let bin_target = "\n\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"\n";
-            let bin_target_alt = "\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"";
+            let bin_target = "\n\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"\nrequired-features = [\"desktop\"]\n";
+            let bin_target_alt = "\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"\nrequired-features = [\"desktop\"]";
             let objc_dep = "\nobjc = \"0.2.7\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"";
             let objc_dep_alt = "\nobjc = \"0.2.7\"";
             
             content = content.replace(bin_target, "");
             content = content.replace(bin_target_alt, "");
+            // Also clean the old version without required-features just in case
+            let old_bin_target = "\n\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"\n";
+            let old_bin_target_alt = "\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"";
+            content = content.replace(old_bin_target, "");
+            content = content.replace(old_bin_target_alt, "");
             content = content.replace(objc_dep, "");
             content = content.replace(objc_dep_alt, "");
             
@@ -176,6 +181,23 @@ fn write_scaffold_file(path_str: &str, content: &[u8], make_executable: bool) {
     }
 }
 
+fn get_crate_name() -> String {
+    let cargo_path = Path::new("Cargo.toml");
+    if let Ok(content) = fs::read_to_string(cargo_path) {
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("name =") || trimmed.starts_with("name=") {
+                let parts: Vec<&str> = trimmed.split('=').collect();
+                if parts.len() > 1 {
+                    let name = parts[1].trim().trim_matches('"').trim_matches('\'');
+                    return name.replace('-', "_");
+                }
+            }
+        }
+    }
+    "rustbasic".to_string()
+}
+
 pub fn make_native_scaffolding() {
     println!("🚀 {}", "Menyiapkan scaffolding RustBasic Native...".bold());
 
@@ -184,7 +206,9 @@ pub fn make_native_scaffolding() {
     write_scaffold_file("native/native-bridge.js", TEMPLATE_NATIVE_BRIDGE_JS.as_bytes(), false);
 
     // Desktop wrapper
-    write_scaffold_file("native/desktop/src/main.rs", TEMPLATE_DESKTOP_MAIN_RS.as_bytes(), false);
+    let crate_name = get_crate_name();
+    let desktop_main_content = TEMPLATE_DESKTOP_MAIN_RS.replace("rustbasic::", &format!("{}::", crate_name));
+    write_scaffold_file("native/desktop/src/main.rs", desktop_main_content.as_bytes(), false);
     write_scaffold_file("native/desktop/Info.plist", TEMPLATE_DESKTOP_INFO_PLIST.as_bytes(), false);
 
     // Android wrapper gradle files
@@ -374,7 +398,7 @@ fn modify_user_cargo_toml() {
 
     let mut updated = false;
 
-    // 1. Add websocket & desktop features to rustbasic-core if they're not there
+    // 1. Add websocket features to rustbasic-core if they're not there
     if let Some(pos) = content.find("rustbasic-core") {
         if let Some(features_pos) = content[pos..].find("features = [") {
             let actual_features_pos = pos + features_pos + "features = [".len();
@@ -382,13 +406,26 @@ fn modify_user_cargo_toml() {
             if !content[pos..].contains("websocket") {
                 feature_insert.push_str("\n    \"websocket\",");
             }
-            if !content[pos..].contains("desktop") {
-                feature_insert.push_str("\n    \"desktop\",");
-            }
             if !feature_insert.is_empty() {
                 content.insert_str(actual_features_pos, &feature_insert);
                 updated = true;
-                println!("   {} Menambahkan fitur desktop/websocket ke rustbasic-core di Cargo.toml...", "📝".bold());
+                println!("   {} Menambahkan fitur websocket ke rustbasic-core di Cargo.toml...", "📝".bold());
+            }
+        }
+    }
+
+    // 1b. Add desktop cargo feature if not present
+    if !content.contains("[features]") {
+        content.push_str("\n\n[features]\ndesktop = [\"rustbasic-core/desktop\"]\n");
+        updated = true;
+        println!("   {} Menambahkan konfigurasi fitur [features] dan desktop ke Cargo.toml...", "📝".bold());
+    } else {
+        if !content.contains("desktop =") && !content.contains("desktop=") {
+            if let Some(pos) = content.find("[features]") {
+                let insert_pos = pos + "[features]".len();
+                content.insert_str(insert_pos, "\ndesktop = [\"rustbasic-core/desktop\"]");
+                updated = true;
+                println!("   {} Menambahkan fitur desktop ke [features] di Cargo.toml...", "📝".bold());
             }
         }
     }
@@ -405,9 +442,9 @@ fn modify_user_cargo_toml() {
 
     // 3. Add [[bin]] target for rustbasic-desktop if not present
     if !content.contains("name = \"rustbasic-desktop\"") {
-        content.push_str("\n\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"\n");
+        content.push_str("\n\n[[bin]]\nname = \"rustbasic-desktop\"\npath = \"native/desktop/src/main.rs\"\nrequired-features = [\"desktop\"]\n");
         updated = true;
-        println!("   {} Menambahkan target binary rustbasic-desktop di Cargo.toml...", "📝".bold());
+        println!("   {} Menambahkan target binary rustbasic-desktop dengan required-features di Cargo.toml...", "📝".bold());
     }
 
     if updated {
