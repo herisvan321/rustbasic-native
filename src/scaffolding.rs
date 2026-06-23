@@ -81,20 +81,42 @@ pub fn remove_native_scaffolding() {
     let layout_path = Path::new("src/resources/js/Layouts/AppLayout.tsx");
     if layout_path.exists() {
         if let Ok(content) = fs::read_to_string(layout_path) {
-            let link_block = r#"
-            <Link
-              href={route('permission')}
-              style={{
-                fontSize: '0.875rem', fontWeight: 600, 
-                color: currentPath === '/permission' ? '#e8520e' : (isDark ? '#888' : '#555'),
-                textDecoration: 'none', transition: 'color 0.2s',
-              }}
-            >
-              Izin
-            </Link>"#;
-            let updated = content.replace(link_block, "");
-            fs::write(layout_path, updated).ok();
-            println!("   {} Membersihkan navigasi Izin di {}", "📝".blue(), layout_path.display());
+            let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+            let mut perm_idx = None;
+            for (i, line) in lines.iter().enumerate() {
+                if line.contains("href={route('permission')}") {
+                    perm_idx = Some(i);
+                    break;
+                }
+            }
+
+            if let Some(idx) = perm_idx {
+                let mut start_idx = None;
+                for i in (0..=idx).rev() {
+                    if lines[i].contains("<Link") {
+                        start_idx = Some(i);
+                        break;
+                    }
+                }
+
+                let mut end_idx = None;
+                for i in idx..lines.len() {
+                    if lines[i].contains("</Link>") {
+                        end_idx = Some(i);
+                        break;
+                    }
+                }
+
+                if let (Some(s_idx), Some(e_idx)) = (start_idx, end_idx) {
+                    println!("   {} Membersihkan navigasi Izin di {}", "📝".blue(), layout_path.display());
+                    lines.drain(s_idx..=e_idx);
+                    
+                    let has_crlf = content.contains("\r\n");
+                    let joiner = if has_crlf { "\r\n" } else { "\n" };
+                    let updated = lines.join(joiner) + joiner;
+                    fs::write(layout_path, updated).ok();
+                }
+            }
         }
     }
     
@@ -308,40 +330,54 @@ fn modify_user_layout_entry() {
     let layout_path = Path::new("src/resources/js/Layouts/AppLayout.tsx");
     if !layout_path.exists() { return; }
 
-    let Ok(mut content) = fs::read_to_string(layout_path) else { return };
+    let Ok(content) = fs::read_to_string(layout_path) else { return };
 
     if content.contains("route('permission')") {
         return; // sudah terkonfigurasi
     }
 
-    // Temukan link Tentang dan sisipkan link Izin setelahnya
-    let search_target = r#"            <Link
-              href={route('about')}
-              style={{
-                fontSize: '0.875rem', fontWeight: 600, 
-                color: currentPath === '/about' ? '#e8520e' : (isDark ? '#888' : '#555'),
-                textDecoration: 'none', transition: 'color 0.2s',
-              }}
-            >
-              Tentang
-            </Link>"#;
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut about_idx = None;
+    for (i, line) in lines.iter().enumerate() {
+        if line.contains("href={route('about')}") {
+            about_idx = Some(i);
+            break;
+        }
+    }
 
-    if let Some(pos) = content.find(search_target) {
-        println!("   {} Menambahkan navigasi Izin di {}...", "📝".bold(), layout_path.display());
-        let insert_pos = pos + search_target.len();
-        let link_to_insert = r#"
-            <Link
-              href={route('permission')}
-              style={{
-                fontSize: '0.875rem', fontWeight: 600, 
-                color: currentPath === '/permission' ? '#e8520e' : (isDark ? '#888' : '#555'),
-                textDecoration: 'none', transition: 'color 0.2s',
-              }}
-            >
-              Izin
-            </Link>"#;
-        content.insert_str(insert_pos, link_to_insert);
-        fs::write(layout_path, content).ok();
+    if let Some(idx) = about_idx {
+        let mut close_idx = None;
+        for i in idx..lines.len() {
+            if lines[i].contains("</Link>") {
+                close_idx = Some(i);
+                break;
+            }
+        }
+
+        if let Some(c_idx) = close_idx {
+            println!("   {} Menambahkan navigasi Izin di {}...", "📝".bold(), layout_path.display());
+            let permission_link = vec![
+                "            <Link".to_string(),
+                "              href={route('permission')}".to_string(),
+                "              style={{".to_string(),
+                "                fontSize: '0.875rem', fontWeight: 600, ".to_string(),
+                "                color: currentPath === '/permission' ? '#e8520e' : (isDark ? '#888' : '#555'),".to_string(),
+                "                textDecoration: 'none', transition: 'color 0.2s',".to_string(),
+                "              }}".to_string(),
+                "            >".to_string(),
+                "              Izin".to_string(),
+                "            </Link>".to_string(),
+            ];
+            
+            for (offset, line) in permission_link.into_iter().enumerate() {
+                lines.insert(c_idx + 1 + offset, line);
+            }
+
+            let has_crlf = content.contains("\r\n");
+            let joiner = if has_crlf { "\r\n" } else { "\n" };
+            let updated = lines.join(joiner) + joiner;
+            fs::write(layout_path, updated).ok();
+        }
     }
 }
 

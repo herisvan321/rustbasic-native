@@ -1,6 +1,6 @@
 [package]
 name = "rustbasic-native"
-version = "0.0.9"
+version = "0.0.11"
 edition = "2024"
 description = "Native platform wrapper support package for the RustBasic Framework. Run your RustBasic server inside Android, iOS, and Desktop apps."
 license = "MIT"

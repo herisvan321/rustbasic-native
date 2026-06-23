@@ -7,6 +7,7 @@ pub use rustbasic_core::session;
 pub use rustbasic_core::view;
 pub use rustbasic_core::server;
 pub use rustbasic_core::logger;
+pub use rustbasic_core::MigratorTrait;
 
 #[cfg(target_os = "android")]
 pub use rustbasic_core::jni;
@@ -52,6 +53,9 @@ macro_rules! setup_native {
                     
                     // Setup Database
                     let db = $crate::database::connect(&cfg).await;
+
+                    // Run migrations automatically on mobile
+                    let _ = <crate::migrations::Migrator as $crate::MigratorTrait>::up(&db, None).await;
                     
                     // Setup Sessions
                     $crate::session::init_sessions(&cfg).await;
